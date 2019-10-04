@@ -30,9 +30,15 @@ public class AlarmReceiver extends BroadcastReceiver {
     public static final String EXTRA_MESSAGE = "message";
     public static final String EXTRA_TYPE = "type";
 
+    private String DATE_FORMAT = "yyyy-MM-dd";
+    private String TIME_FORMAT = "HH:mm";
+
     // Siapkan 2 id untuk 2 macam alarm, onetime dan repeating
     private final int ID_ONETIME = 100;
     private final int ID_REPEATING = 101;
+
+    public AlarmReceiver() {
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -52,8 +58,6 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     public void setOneTimeAlarm (Context context, String type, String date, String time, String message) {
-        String DATE_FORMAT = "yyyy-MM-dd";
-        String TIME_FORMAT = "HH:mm";
         if (isDateInvalid(date, DATE_FORMAT) || isDateInvalid(time, TIME_FORMAT)) return;
 
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -79,17 +83,6 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
 
         Toast.makeText(context, "One time alarm set up", Toast.LENGTH_SHORT).show();
-    }
-
-    public boolean isDateInvalid(String date, String format) {
-        try {
-            DateFormat df = new SimpleDateFormat(format, Locale.getDefault());
-            df.setLenient(false);
-            df.parse(date);
-            return false;
-        } catch (ParseException e) {
-            return true;
-        }
     }
 
     private void showAlarmNotification(Context context, String title, String message, int notifId) {
@@ -125,6 +118,40 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         if (notificationManagerCompat != null) {
             notificationManagerCompat.notify(notifId, notification);
+        }
+    }
+
+    public void setRepeatingAlarm(Context context, String type, String time, String message) {
+        if (isDateInvalid(time, TIME_FORMAT)) return;
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        intent.putExtra(EXTRA_MESSAGE, message);
+        intent.putExtra(EXTRA_TYPE, type);
+
+        String[] timeArray = time.split(":");
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timeArray[0]));
+        calendar.set(Calendar.MINUTE, Integer.parseInt(timeArray[1]));
+        calendar.set(Calendar.SECOND, 0);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, ID_REPEATING, intent, 0);
+        if (alarmManager != null) {
+            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        }
+
+        Toast.makeText(context, "Repeating alarm set up", Toast.LENGTH_SHORT).show();
+    }
+
+    public boolean isDateInvalid(String date, String format) {
+        try {
+            DateFormat df = new SimpleDateFormat(format, Locale.getDefault());
+            df.setLenient(false);
+            df.parse(date);
+            return false;
+        } catch (ParseException e) {
+            return true;
         }
     }
 }
